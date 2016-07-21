@@ -44,25 +44,12 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">Bootstrap theme</a>
+          <a class="navbar-brand" href="#">wikipedia-readability</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
-              <ul class="dropdown-menu">
-                <li><a href="#">Action</a></li>
-                <li><a href="#">Another action</a></li>
-                <li><a href="#">Something else here</a></li>
-                <li role="separator" class="divider"></li>
-                <li class="dropdown-header">Nav header</li>
-                <li><a href="#">Separated link</a></li>
-                <li><a href="#">One more separated link</a></li>
-              </ul>
-            </li>
+            <li class="active"><a href="index.php">Home</a></li>
+            <li><a href="https://keybase.io/wasmitnetzen">Keybase.io</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -74,9 +61,72 @@
       <div class="jumbotron">
         <h1>wikipedia-readability</h1>
         <p>This is my approach at the Task2 from <a href="https://www.mediawiki.org/wiki/User:Kaldari/Task_2">User:Kaldari</a> at Mediawiki.org.</p>
-        <p>The code can be found on <a href="https://github.com/wasmitnetzen/wikipedia-readability">Github</a> and it is licences under the MIT License.</p>
+        <p>The code can be found on <a href="https://github.com/wasmitnetzen/wikipedia-readability">Github</a> and it is licenced under the MIT License.</p>
       </div>
-
+      <?php
+      if (!isset($_GET["category"])) { ?>
+      <div class="page-header">
+        <h1>What To Do?</h1>
+      </div>
+      <div class="well">
+        <p>This tool fetches all articles from a given category at the English Wikipedia, calculates a readability score on them and shows a sorted result below.</p><p>Please start by giving a category name in the form below.</p>
+        <p><form action="index.php" method="GET">
+          <table style="width: 90%">
+            <tr>
+              <td><b>Category name:</b></td>
+              <td><input type="text" name="category" style="width:70%" /></td>
+            </tr>
+          </table>
+          <input type="submit" class="btn btn-default" value="Send form" />
+        </form></p>
+      </div>
+      <?php } else { ?>
+      <div class="page-header">
+        <h1>Results</h1>
+      </div>
+      <?php
+      include("readabilityAnalyzer.php");
+      $readabilityAnalyzer = new ReadabilityAnalyzer();
+      $readabilityAnalyzer->buildResults($_GET["category"]);
+      ?>
+      <div>
+        <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Username</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td rowspan="2">1</td>
+                <td>Mark</td>
+                <td>Otto</td>
+                <td>@mdo</td>
+              </tr>
+              <tr>
+                <td>Mark</td>
+                <td>Otto</td>
+                <td>@TwBootstrap</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>Jacob</td>
+                <td>Thornton</td>
+                <td>@fat</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td colspan="2">Larry the Bird</td>
+                <td>@twitter</td>
+              </tr>
+            </tbody>
+          </table>
+          <a href="index.php">&lt; Back</a>
+          </div>
+      <?php } ?>
     </div> <!-- /container -->
 
 
