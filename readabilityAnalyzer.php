@@ -81,7 +81,7 @@ class ReadabilityAnalyzer {
 		usort($extractArray, 'readabilitySort');
 
 		// build table
-		$table = '<table class="table table-bordered"><thead><tr><th>Article</th><th><a title="Higher is better">Readability Score</a></th><th>Extract</th><th>Further Categories</th></tr></thead><tbody>';
+		$table = '<table class="table table-bordered table-striped"><thead><tr><th>Article</th><th><a title="Higher is better">Readability Score</a></th><th>Extract</th><th>Further Categories</th></tr></thead><tbody>';
 		foreach ($extractArray as $index => $article) {
 			$categoriesString = "";
 			foreach ($article->categories as $key => $categoryObject) {
