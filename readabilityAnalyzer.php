@@ -3,7 +3,8 @@
 
 
 class ReadabilityAnalyzer {
-	var $endpoint = "https://en.wikipedia.org/w/api.php?action=query&format=json&utf8=1";
+	var $host ="https://en.wikipedia.org";
+	var $endpoint = "/w/api.php?action=query&format=json&utf8=1";
 	var $categoryNamespace = "Category";
 	var $curl;
 	var $curlLog;
@@ -27,81 +28,127 @@ class ReadabilityAnalyzer {
 		if (strpos($category,$this->categoryNamespace) === false) {
 			$category = $this->categoryNamespace.":".$category;
 		}
+
+		// format name for mediawiki
+		$category = str_replace(" ", "_",$category);
+
 		// TODO: check if category exists
+
 		// fetch data for category
 		$categoryContent = json_decode($this->fetchCategory($category));
 		// parse JSON
 		$categoryMembers = $categoryContent->query->categorymembers;
 		$categoryMembersCount = count($categoryMembers);
-		#var_dump($categoryMembers);
+
 		$pageIds = "";
 		$articleCount = 0;
 		$extractArray = array();
+		// go through each article
 		foreach ($categoryMembers as $article) {
-			// fetch article
-			#var_dump($article);
 			$pageId = $article->pageid;
 			$title =  $article->title;
-			#echo "Handling $title ($pageId)<br>";
+			// build request string
 			$pageIds .= $pageId."|";
+
 			$articleCount++;
+			// send request at every 20 articles (due to API limit) and at the end
 			if ($articleCount % 20 == 0 || $articleCount == $categoryMembersCount) {
 				// cut off last |
 				$pageIds = substr($pageIds,0,-1);
-				$articleResponse = json_decode($this->fetchArticles($pageIds));
-				$articles = $articleResponse->query->pages;
 
+				// fetch articles identified by $pageIds
+				$articleResponse = $this->fetchArticles($pageIds);
+
+				// store result
+				$articles = $articleResponse->query->pages;
 				foreach ($articles as $key => $value) {
 					$extractArray[$key] = $value;
 				}
+				// reset $pageIds
 				$pageIds = "";
 			}
 		}
-		echo "Queried for $categoryMembersCount articles, got ".count($extractArray).".<br>";
-		if ($categoryMembersCount !== count($extractArray)) {
-			echo "Not all articles were returned by API.<br>";
-		}
-		#var_dump($extractArray);
 
+		// check if results and query have the same amount of articles
+		if ($categoryMembersCount !== count($extractArray)) {
+			echo "Not all articles were returned by the API.<br>";
+		}
 
 		// calculate readability
-		$extractArray = $this->calculateReadbilities($extractArray);
+		$extractArray = $this->calculateReadabilities($extractArray);
 
 		// sort by readability
 		usort($extractArray, 'readabilitySort');
+
 		// build table
-		$table = '<table class="table table-bordered"><thead><tr><th>PageId</th><th>Title</th><th>Readability Score</th><th>Extract</th></tr></thead><tbody>';
+		$table = '<table class="table table-bordered"><thead><tr><th>Article</th><th><a title="Higher is better">Readability Score</a></th><th>Extract</th><th>Further Categories</th></tr></thead><tbody>';
 		foreach ($extractArray as $index => $article) {
-			$table .= "<tr><td>".$article->pageid."</td><td>".$article->title."</td><td>".$article->readabilityScore."</td><td>".substr($article->extract, 0, 60)."...</td></tr>";
+			$categoriesString = "";
+			foreach ($article->categories as $key => $categoryObject) {
+				// dont include current category
+				if ($categoryObject->title == $category) {
+					continue;
+				}
+				// link to category, remove namespace for the text
+				$categoriesString .= "<a href='index.php?category=".$categoryObject->title."'>".substr($categoryObject->title,(strlen($this->categoryNamespace))+1)."</a> | ";
+			}
+			$categoriesString = substr($categoriesString, 0,-3);
+			$table .= "<tr><td><a href='".$this->host."/wiki/".$article->title."'>".$article->title."</a></td><td>".$article->readabilityFormatted."</td><td>".substr($article->extract, 0, 60)."...</td><td>".$categoriesString."</td></tr>";
 		}
 		$table .= '</tbody></table>';
 		return $table;
 	}
 
 	function fetchCategory($category) {
-		curl_setopt($this->curl, CURLOPT_URL, $this->endpoint."&list=categorymembers&cmlimit=50&cmnamespace=0&cmtitle=".$category);
+		curl_setopt($this->curl, CURLOPT_URL, $this->host.$this->endpoint."&list=categorymembers&redirects=1&cmlimit=50&cmnamespace=0&cmtitle=".$category);
 		$data = curl_exec($this->curl);
-		#echo $data;
 		return $data;
 	}
 
 	function fetchArticles($pageIds) {
-		#echo "Querying for ".$pageIds." articles.<br>";
-		curl_setopt($this->curl, CURLOPT_URL, $this->endpoint."&prop=extracts&explaintext=1&exchars=10000&exintro=1&exlimit=20&pageids=".$pageIds);
-		$data = curl_exec($this->curl);
-		#echo $data."<br>";
+		// fetch extracts
+		curl_setopt($this->curl, CURLOPT_URL, $this->host.$this->endpoint."&prop=extracts&redirects=1&explaintext=1&exchars=10000&exintro=1&exlimit=20&pageids=".$pageIds);
+		$data = json_decode(curl_exec($this->curl));
+
+		// also fetch categories
+		curl_setopt($this->curl, CURLOPT_URL, $this->host.$this->endpoint."&prop=categories&redirects=1&clshow=!hidden&cllimit=500&pageids=".$pageIds);
+		$data2 = json_decode(curl_exec($this->curl));
+		$categories = $data2->query->pages;
+
+		// attach categories to corresponding page object
+		foreach ($data->query->pages as $key => $page) {
+			$pageid = $page->pageid;
+			$page->categories = $categories->$pageid->categories;
+		}
 		return $data;
 	}
 
-	function calculateReadbilities($extractArray) {
+	function calculateReadabilities($extractArray) {
 		foreach ($extractArray as $key => $extract) {
-			$extract->readabilityScore = $this->calculateReadbilityOnExtract($extract->extract);
+			// get readability for each extract
+			$extract->readabilityScore = $this->calculateReadabilityOnExtract($extract->extract);
+			// get nicely formatted number as percentage
+			$extract->readabilityFormatted = number_format($extract->readabilityScore*100,2)."%";
 		}
 		return $extractArray;
 	}
 
-	function calculateReadbilityOnExtract($extract) {
-		return strlen($extract);
+	function calculateReadabilityOnExtract($extract) {
+		// based on https://xkcd.com/1133/
+		include("simpleWords.php");
+
+		// divie extract into words
+		$words = explode(" ", $extract);
+
+		// count amount of simple words in extract
+		$simpleWordsCount = 0;
+		foreach ($words as $word) {
+			if (in_array($word,$simpleWords)) {
+				$simpleWordsCount++;
+			}
+		}
+		// value is the the amount of simple words in the full text
+		return floatval($simpleWordsCount)/floatval(count($words));
 	}
 }
 

@@ -61,6 +61,7 @@
 			<div class="jumbotron">
 				<h1>wikipedia-readability</h1>
 				<p>This is my approach at the Task2 from <a href="https://www.mediawiki.org/wiki/User:Kaldari/Task_2">User:Kaldari</a> at Mediawiki.org.</p>
+				<p>The readability score is calculated by an algorithm based on <a href="https://xkcd.com/1133/">xkcd 1133</a>.</p>
 				<p>The code can be found on <a href="https://github.com/wasmitnetzen/wikipedia-readability">Github</a> and it is licenced under the MIT License.</p>
 			</div>
 			<?php
@@ -69,7 +70,7 @@
 				<h1>What To Do?</h1>
 			</div>
 			<div class="well">
-				<p>This tool fetches all articles from a given category at the English Wikipedia, calculates a readability score on them and shows a sorted result below.</p><p>Please start by giving a category name in the form below.</p>
+				<p>This tool fetches all articles from a given category at the English Wikipedia, calculates a readability score on them and shows a sorted result below.</p><p>Please start by giving a valid category name in the form below.</p>
 				<p><form action="index.php" method="GET">
 					<table style="width: 90%">
 						<tr>
