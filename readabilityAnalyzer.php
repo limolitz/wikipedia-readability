@@ -107,7 +107,7 @@ class ReadabilityAnalyzer {
 
 	function fetchArticles($pageIds) {
 		// fetch extracts
-		curl_setopt($this->curl, CURLOPT_URL, $this->host.$this->endpoint."&prop=extracts&redirects=1&explaintext=1&exchars=10000&exintro=1&exlimit=20&pageids=".$pageIds);
+		curl_setopt($this->curl, CURLOPT_URL, $this->host.$this->endpoint."&prop=extracts&redirects=1&explaintext=1&exchars=20000&exintro=1&exlimit=20&pageids=".$pageIds);
 		$data = json_decode(curl_exec($this->curl));
 
 		// also fetch categories
@@ -134,6 +134,9 @@ class ReadabilityAnalyzer {
 	}
 
 	function calculateReadabilityOnExtract($extract) {
+		// cut off extract after first paragraph
+		$extract = explode("\n",$extract)[0];
+
 		// based on https://xkcd.com/1133/
 		include("simpleWords.php");
 
@@ -147,7 +150,7 @@ class ReadabilityAnalyzer {
 				$simpleWordsCount++;
 			}
 		}
-		// value is the the amount of simple words in the full text
+		// value is then the amount of simple words in the full text
 		return floatval($simpleWordsCount)/floatval(count($words));
 	}
 }
